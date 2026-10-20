@@ -53,13 +53,18 @@ jobs:
 
       - name: Run notifier
         env:
-          MOVIE: ${{ secrets.MOVIE }}
-          CITY: ${{ secrets.CITY }}
-          MONITOR_DATE: ${{ secrets.MONITOR_DATE }}
-          THEATER: ${{ secrets.THEATER }}
+          # Only the API key is secret. Everything else is a repo *variable*
+          # (Settings → Secrets and variables → Actions → Variables), so you
+          # can tweak movie/date/theater without touching secrets. The
+          # `vars.X || secrets.X` fallback keeps previously-created secrets
+          # working too.
+          MOVIE: ${{ vars.MOVIE || secrets.MOVIE }}
+          CITY: ${{ vars.CITY || secrets.CITY }}
+          MONITOR_DATE: ${{ vars.MONITOR_DATE || secrets.MONITOR_DATE }}
+          THEATER: ${{ vars.THEATER || secrets.THEATER }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM || secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ vars.EMAIL_TO || secrets.EMAIL_TO }}
           DUMP: ${{ github.event.inputs.debug || 'false' }}
           HEADLESS: "false"
         run: xvfb-run -a --server-args="-screen 0 1440x900x24" python main.py

@@ -71,19 +71,31 @@ hour by a free GitHub Actions job, delivered by [Resend](https://resend.com).
    `state.json` placeholder if present).
 3. GitHub will auto-enable Actions on the default branch.
 
-### 3. Secrets
+### 3. Variables (and the one secret)
 
-Repo → *Settings* → *Secrets and variables* → *Actions* → *New repository secret*:
+Repo → *Settings* → *Secrets and variables* → *Actions*:
 
-| Secret          | Value                                              | Required |
-|-----------------|----------------------------------------------------|----------|
-| `RESEND_API_KEY`| Resend API key (`re_...`)                          | yes      |
-| `EMAIL_FROM`    | `Movie Notifier <alerts@your-domain.in>`           | yes      |
-| `EMAIL_TO`      | comma-separated recipients                         | yes      |
-| `MOVIE`         | see "Choosing MOVIE" below                         | yes      |
-| `CITY`          | e.g. `bengaluru` (BookMyShow city slug)            | yes      |
-| `MONITOR_DATE`  | `2026-10-19` or `20261019`                         | yes      |
-| `THEATER`       | theater name substring (e.g. `PVR: Orion`)         | no       |
+- **Secrets tab** → *New repository secret* — only one:
+
+| Secret           | Value                     | Required |
+|------------------|---------------------------|----------|
+| `RESEND_API_KEY` | Resend API key (`re_...`) | yes      |
+
+- **Variables tab** → *New repository variable* — everything else (these are
+  visible and editable without touching secrets):
+
+| Variable       | Value                                              | Required |
+|----------------|----------------------------------------------------|----------|
+| `EMAIL_FROM`   | `Movie Notifier <alerts@your-domain.in>`           | yes      |
+| `EMAIL_TO`     | comma-separated recipients                         | yes      |
+| `MOVIE`        | see "Choosing MOVIE" below                         | yes      |
+| `CITY`         | e.g. `bengaluru` (BookMyShow city slug)            | yes      |
+| `MONITOR_DATE` | `2026-10-19` or `20261019`                         | yes      |
+| `THEATER`      | theater name substring (e.g. `PVR: Orion`)         | no       |
+
+The workflow falls back to the old secret names (`vars.X || secrets.X`), so
+if you had already created these as secrets, they keep working — but new
+setups should use variables (they're easier to update later).
 
 ### Choosing MOVIE (most → least reliable)
 
@@ -115,8 +127,9 @@ Repo → *Settings* → *Secrets and variables* → *Actions* → *New repositor
   `monitors` map, and commit.
 - **Force-send now**: run workflow_dispatch (or locally `python main.py --force`)
   — sends the current milestone alert again.
-- **Change date/theater/movie**: simply change secrets; the config hash changes,
-  so a fresh monitor is created and alerts re-arm automatically.
+- **Change date/theater/movie**: change the repo *variables* (no secrets
+  touched); the config hash changes, so a fresh monitor is created and alerts
+  re-arm automatically.
 
 ## Local usage
 

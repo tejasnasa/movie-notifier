@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """movie-notifier — watch BookMyShow for ticket availability and email an alert.
 
-Config comes from environment variables (GitHub secrets in Actions, or a .env
-file locally). State is kept in state.json and committed back to the repo on
+Config comes from environment variables (GitHub Actions variables + the one
+API-key secret, or a .env file locally). State is kept in state.json and committed back to the repo on
 GitHub Actions so the run is never repeated / not forgotten.
 
 Usage:
