@@ -1,4 +1,16 @@
 {
   "version": 1,
-  "monitors": {}
+  "monitors": {
+    "140ae4801daeb0cb": {
+      "status": "open_elsewhere",
+      "movie": "ET00481645",
+      "movie_display": "Street Fighter",
+      "city": "delhi",
+      "date": "20261021",
+      "theater": "Priya",
+      "notified_stage": 1,
+      "notified_at": "2026-10-20T07:03:50+05:30"
+    }
+  },
+  "last_commit_at": "2026-10-20T07:03:50+05:30"
 }
