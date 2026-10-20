@@ -1,0 +1,15 @@
+# secrets / local config — never commit
+.env
+
+# debug artifacts from --dump runs
+debug/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# state backups
+*.bak
+state.json.tmp

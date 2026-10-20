@@ -1,0 +1,74 @@
+name: movie-notifier
+
+on:
+  schedule:
+    # hourly at :23 UTC — the off minute avoids GitHub's top-of-hour cron crunch
+    - cron: "23 * * * *"
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: "Save debug artifacts (raw API payloads, page text)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: movie-notifier
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Restore Playwright browsers from cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-${{ hashFiles('requirements.txt') }}
+
+      - name: Install Playwright Chromium (cached)
+        run: python -m playwright install --with-deps chromium
+
+      # BookMyShow's Cloudflare hard-blocks headless Chromium (403), so the
+      # browser runs HEADED inside a virtual framebuffer instead.
+      - name: Ensure Xvfb is available
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+
+      - name: Run notifier
+        env:
+          MOVIE: ${{ secrets.MOVIE }}
+          CITY: ${{ secrets.CITY }}
+          MONITOR_DATE: ${{ secrets.MONITOR_DATE }}
+          THEATER: ${{ secrets.THEATER }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          DUMP: ${{ github.event.inputs.debug || 'false' }}
+          HEADLESS: "false"
+        run: xvfb-run -a --server-args="-screen 0 1440x900x24" python main.py
+
+      - name: Upload debug artifacts
+        if: ${{ always() && github.event.inputs.debug == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-dump
+          path: debug/
+          if-no-files-found: ignore
+          retention-days: 7
