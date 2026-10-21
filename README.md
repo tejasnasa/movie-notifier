@@ -30,6 +30,13 @@ hour by a free GitHub Actions job, delivered by [Resend](https://resend.com).
   - Only `MOVIE` given as a **URL or ET code** uses the fast path; a movie
     *name* needs the explore pages, which plain clients can't fetch (the bot
     filter demands a real browser there) → browser path.
+  - **Format variants are watched together.** BookMyShow tickets IMAX 2D /
+    4DX / ICE / other-language cuts under their *own* event codes, and an
+    IMAX-only cinema won't appear in the base code's venue list. The fast
+    path reads the movie's format-selector from the payload and unions the
+    venue lists of every variant (a few extra tiny API calls), so
+    `THEATER=Priya` matches "PVR IMAX with Laser, Priya: Delhi" even though
+    it only sells the IMAX-2D code, not the base one.
   - If the city isn't canonical in `regions.json`, or Cloudflare starts
     challenging, or the payload shape changes — the run **automatically falls
     back** to the headed browser. The fast path never answers with data it

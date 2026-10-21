@@ -38,6 +38,7 @@ from bms_common import (
     UA_CHROME,
     build_buy_url,
     compose_result,
+    format_variants_from_body,
     kebab,
     resolve_from_url,
 )
@@ -258,6 +259,55 @@ def parse_body(body: dict) -> dict:
         "date_styles": date_styles,
     }
 
+MAX_VARIANTS = 8  # base plus at most this many extra format event codes
+
+
+def _merged_rows(variant_rows: list[dict]) -> tuple[list, dict]:
+    """Union venue rows across all format variants of the movie.
+
+    Same venue can sell several formats (2D + IMAX): shows are summed per
+    date, format labels collected. Returns (merged rows, venue->formats map).
+    """
+    order: list[str] = []
+    merged: dict[str, dict] = {}
+    for vrow, _vlabel in variant_rows:
+        for v in vrow:
+            key = (v.get("code") or v["name"]).strip().upper() or v["name"]
+            m = merged.get(key)
+            if not m:
+                merged[key] = {
+                    "name": v["name"],
+                    "code": v.get("code", ""),
+                    "shows": int(v.get("shows", 0) or 0),
+                    "perDate": dict(v.get("perDate") or {}),
+                    "formats": [_vlabel] if _vlabel else [],
+                }
+                order.append(key)
+                continue
+            m["shows"] += int(v.get("shows", 0) or 0)
+            for d, c in (v.get("perDate") or {}).items():
+                m["perDate"][d] = m["perDate"].get(d, 0) + int(c)
+            if _vlabel and _vlabel not in m["formats"]:
+                m["formats"].append(_vlabel)
+    return [merged[k] for k in order], {m["name"]: m["formats"] for m in merged.values()}
+
+
+def fetch_event_and_rows(et: str, datecode: str, ri: RegionInfo) -> tuple[list, dict, dict]:
+    """Fetch one event code's primary-dynamic payload and row-parse it.
+
+    Returns (venue rows, parsed summary, raw body). The parsed summary also
+    carries ['format_variants'] — the (etcode, format label) pairs advertised
+    by this payload's format-selector.
+    """
+    body = fetch_primary_dynamic(et, datecode, ri)
+    parsed = parse_body(body)
+    if parsed["body_et"] and parsed["body_et"].upper() != et:
+        raise FastPathError(
+            f"API returned a different event ({parsed['body_et']}) than requested ({et})"
+        )
+    parsed["format_variants"] = format_variants_from_body(body, et)
+    return parsed["rows"], parsed, body
+
 
 # ---------------------------------------------------------------------------
 # top-level fast-path run
@@ -287,24 +337,43 @@ def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
     if not ri.trusted:
         # A guessed region code could silently query the wrong city — both a
         # false positive (wrong-city venues) and a false negative (empty for a
-        # valid-but-misguessed region) are possible. The browser path resolves
+        # valid-but-misguished region) are possible. The browser path resolves
         # the region from the live page instead.
         raise FastPathError(f"city '{cfg['city']}' not in regions.json — falling back")
-    body = fetch_primary_dynamic(et, cfg["datecode"], ri)
+
+    base_rows, parsed, base_body = fetch_event_and_rows(et, cfg["datecode"], ri)
+
     if dump_dir is not None:
         try:
             dump_dir.mkdir(parents=True, exist_ok=True)
             (dump_dir / "primary_dynamic_v4.json").write_text(
-                json.dumps(body, indent=2, default=str), encoding="utf-8"
+                json.dumps(base_body, indent=2, default=str), encoding="utf-8"
             )
         except Exception:
             pass
 
-    parsed = parse_body(body)
-    if parsed["body_et"] and parsed["body_et"].upper() != et:
-        raise FastPathError(
-            f"API returned a different event ({parsed['body_et']}) than requested ({et})"
-        )
+    # --- expand format variants ------------------------------------------
+    # BookMyShow tickets IMAX 2D / 4DX / other-language formats under their own
+    # event codes; a venue selling only a variant never shows up in the base
+    # venue list (e.g. PVR IMAX Priya Delhi sells Street Fighter IMAX under
+    # ET00522122 while the base 2D code lists 31 other cinemas).
+    all_rows: list[tuple[list, str]] = [(base_rows, "")]
+    variant_fetch_errors: list[str] = []
+    tried: list[str] = []
+    for vcode, vlabel in parsed["format_variants"]:
+        if vcode == et or vcode in tried or len(tried) >= MAX_VARIANTS:
+            continue
+        try:
+            vrows, _vparsed, _vbody = fetch_event_and_rows(vcode, cfg["datecode"], ri)
+            tried.append(vcode)
+            all_rows.append((vrows, vlabel))
+            log(f"fast path: variant {vcode} ({vlabel or 'other format'}): {len(vrows)} venues")
+        except Exception as exc:  # noqa: BLE001 — a variant failing must not kill the run
+            variant_fetch_errors.append(f"{vcode}: {exc}")
+            log(f"fast path: variant {vcode} fetch failed ({exc}) — continuing")
+
+    rows, venue_formats = _merged_rows(all_rows)
+    ets_used = [et] + list(tried)
 
     if not resolution.slug:
         # ET-code input: take the real movie title from the payload; slug for
@@ -317,13 +386,15 @@ def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
         )
 
     buy_url = build_buy_url(cfg["city"], resolution.slug, et, cfg["datecode"])
-    rows = parsed["rows"]
     state = "on-date" if parsed["body_date"] in ("", cfg["datecode"]) else f"sole-date:{parsed['body_date']}"
     extras = {
-        "query_key": f"api-v4:{et}:{cfg['datecode']}:{ri.code}",
+        "query_key": f"api-v4:{','.join(ets_used)}:{cfg['datecode']}:{ri.code}",
         "region_code": ri.code,
         "region_trusted": ri.trusted,
         "date_styles": parsed["date_styles"],
+    "variant_ets": list(tried),
+        "venue_formats": venue_formats,
+        "variant_fetch_errors": variant_fetch_errors,
     }
 
     if rows:
@@ -332,7 +403,7 @@ def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
             target=cfg["datecode"], date_state=state, extras=extras,
         )
 
-    log("fast path: zero venues; region is canonical from regions.json — trustworthy")
+    log("fast path: zero venues across base + all format variants; region canonical — trustworthy")
     return compose_result(
         source="api", resolution=resolution, buy_url=buy_url, rows=[],
         target=cfg["datecode"], date_state="on-date", extras=extras,

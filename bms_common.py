@@ -5,6 +5,7 @@ Kept dependency-free so both import paths stay light.
 
 from __future__ import annotations
 
+import json
 import re
 import urllib.parse
 from dataclasses import dataclass, field
@@ -80,6 +81,45 @@ def slug_from_url(url: str) -> str:
 
 def build_buy_url(city: str, slug: str, et: str, datecode: str) -> str:
     return f"{PLAY_HOME}/movies/{city}/{slug}/buytickets/{et}/{datecode}"
+
+
+# ---------------------------------------------------------------------------
+# format-variant discovery (BookMyShow tickets each format under its own ET)
+# ---------------------------------------------------------------------------
+
+def format_variants_from_body(body: dict, base_et: str) -> list[tuple[str, str]]:
+    """Discover format/language variant event codes from a showtimes payload.
+
+    BookMyShow tickets each *format* of a movie under its own event code: the
+    base code (e.g. 2D regular) is one ET, while IMAX 2D / 4DX / ICE / other
+    languages get separate ETs. The base payload advertises them in
+    bottomSheetData.format-selector chip lists. Venues selling only a variant
+    (e.g. an IMAX-only cinema) never appear in the base venue list — so the
+    monitor must union all variants to be correct.
+
+    Returns a list of (etcode, format_label) including the base code.
+    """
+    variants: list[tuple[str, str]] = []
+    seen: set[str] = set()
+
+    top = body.get("data") if isinstance(body, dict) else None
+    if not isinstance(top, dict):
+        return [(base_et, "")]
+    fs = (top.get("bottomSheetData") or {}).get("format-selector") or {}
+    for w in (fs.get("widgets") or []):
+        if w.get("type") != "chip-list":
+            continue
+        for chip in (w.get("data") or []):
+            label = (chip.get("title") or "").strip()
+            codes = sorted(set(re.findall(r"ET\d{5,}", json.dumps(chip))))
+            for code in codes:
+                if code in seen:
+                    continue
+                seen.add(code)
+                variants.append((code, label))
+    if base_et not in seen:
+        variants.insert(0, (base_et, ""))
+    return variants
 
 
 # ---------------------------------------------------------------------------
