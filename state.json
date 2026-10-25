@@ -10,9 +10,12 @@
       "theater": "Priya",
       "notified_stage": 2,
       "notified_at": "2026-10-21T18:47:15+05:30",
-      "notified_final_at": "2026-10-21T18:47:15+05:30"
+      "notified_final_at": "2026-10-21T18:47:15+05:30",
+      "last_error_sig": "bf0d53717001",
+      "last_error": "MonitorError: ET code ET00481645 was not found on the explore pages for city 'delhi'. Set MOVIE to the movie's full BookMyShow URL instead (most reliable).",
+      "error_at": "2026-10-26T01:18:34+05:30"
     }
   },
-  "last_commit_at": "2026-10-25T11:52:57+05:30",
+  "last_commit_at": "2026-10-26T01:18:35+05:30",
   "last_heartbeat_at": "2026-10-25T11:52:57+05:30"
 }
