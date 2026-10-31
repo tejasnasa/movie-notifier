@@ -11,11 +11,11 @@
       "notified_stage": 2,
       "notified_at": "2026-10-21T18:47:15+05:30",
       "notified_final_at": "2026-10-21T18:47:15+05:30",
-      "last_error_sig": "bf0d53717001",
-      "last_error": "MonitorError: ET code ET00481645 was not found on the explore pages for city 'delhi'. Set MOVIE to the movie's full BookMyShow URL instead (most reliable).",
-      "error_at": "2026-10-26T01:18:34+05:30"
+      "last_error_sig": "eddfaa5b19f2",
+      "last_error": "MonitorError: no showtimes data could be read (no state, no API response, no DOM marker) — page said: 'Skip to main content Search for Movies, Events, Plays, Sports and Activities Delhi Sign in Movies Stream Events Plays Sports Activities ListYourShow Corporates Offers Gift Cards AVAILABLE FAST FILLING Oops! Something went wrong Please try refreshing the page to checkout showtimes Refresh page HomeMo'",
+      "error_at": "2026-11-01T00:11:15+05:30"
     }
   },
-  "last_commit_at": "2026-10-31T19:17:18+05:30",
+  "last_commit_at": "2026-11-01T00:11:15+05:30",
   "last_heartbeat_at": "2026-10-31T19:17:18+05:30"
 }
