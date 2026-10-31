@@ -14,8 +14,16 @@
       "last_error_sig": "eddfaa5b19f2",
       "last_error": "MonitorError: no showtimes data could be read (no state, no API response, no DOM marker) — page said: 'Skip to main content Search for Movies, Events, Plays, Sports and Activities Delhi Sign in Movies Stream Events Plays Sports Activities ListYourShow Corporates Offers Gift Cards AVAILABLE FAST FILLING Oops! Something went wrong Please try refreshing the page to checkout showtimes Refresh page HomeMo'",
       "error_at": "2026-11-01T00:11:15+05:30"
+    },
+    "9ca94a26b831651c": {
+      "status": "watching",
+      "movie": "https://in.bookmyshow.com/movies/national-capital-region-ncr/godzilla-minus-zero/ET00524518",
+      "movie_display": "Godzilla Minus Zero",
+      "city": "delhi",
+      "date": "20261124",
+      "theater": "Priya"
     }
   },
-  "last_commit_at": "2026-11-01T00:11:15+05:30",
+  "last_commit_at": "2026-11-01T01:00:53+05:30",
   "last_heartbeat_at": "2026-10-31T19:17:18+05:30"
 }
