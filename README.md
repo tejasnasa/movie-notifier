@@ -120,12 +120,77 @@ setups should use variables (they're easier to update later).
 
 - Actions tab → **movie-notifier** → *Run workflow*. Set **debug = true** to
   save the extracted state as a debug artifact (raw API payloads, page text).
-- Default schedule: hourly at :23 UTC — change the `cron` in the workflow file
-  to whatever cadence you like.
-- Typical run: ~1 min total (Playwright install is cached; the check itself is
-  seconds when the fast path answers). If logs show the browser fallback
-  running (Xvfb + Chromium), add ~1–2 min — still well inside the GitHub
-  free tier.
+- To test the external trigger by hand (no cron-job.org needed), paste your
+  PAT and run in PowerShell:
+  ```powershell
+  curl.exe -X POST "https://api.github.com/repos/tejasnasa/movie-notifier/dispatches" `
+    -H "Authorization: Bearer YOUR_PAT" `
+    -H "Accept: application/vnd.github+json" `
+    -H "User-Agent: movie-notifier-cron" `
+    -d '{"event_type":"monitor"}'
+  ```
+  `204 No Content` = queued; a run appears in the Actions tab within seconds.
+
+### Triggering from cron-job.org every hour (recommended)
+
+GitHub's built-in scheduler is loose — runs can be late by many minutes and
+occasionally skipped. For a reliable hourly check, let an HTTP cron service
+fire the workflow instead. The session below uses [cron-job.org](https://cron-job.org)
+(free, 1 POST/hour is well within its limits); EasyCron / SetCronJob work the
+same way.
+
+#### 1. Create a personal access token (PAT)
+
+GitHub needs a token to accept external triggers. Use a **fine-grained PAT**
+locked to this repo and nothing more:
+
+1. GitHub → *Settings* → *Developer settings* → *Personal access tokens* →
+   **Fine-grained tokens** → *Generate new token*.
+2. Name: `movie-notifier-trigger`. Expiration: pick what you're comfortable
+   with (default 90 days — add a calendar reminder to renew).
+3. **Repository access** → *Only selected repositories* → `movie-notifier`.
+4. **Permissions** → *Repository permissions* → **Contents: Read and write**
+   (this is what allows the token to fire `repository_dispatch` events).
+   Everything else stays "No access".
+5. Copy the token (`github_pat_…`). It never goes into this repo or GitHub
+   secrets — it lives only inside cron-job.org.
+
+#### 2. Set up the cron job
+
+1. Sign up at [cron-job.org](https://cron-job.org) → *Cronjobs* →
+   **CREATE CRONJOB**.
+2. Title: `movie-notifier hourly`.
+3. Schedule: **every 1 hour** (every day; pick any minute of the hour, e.g.
+   `0` — since it POSTs, GitHub starts the run within seconds).
+4. URL:
+   `https://api.github.com/repos/tejasnasa/movie-notifier/dispatches`
+5. Request method: **POST**, request content type: **application/json**
+   (or add the `Content-Type` header explicitly below).
+6. Request body:
+   ```json
+   {"event_type": "monitor"}
+   ```
+7. Request headers:
+   | Header        | Value                              |
+   |---------------|------------------------------------|
+   | Authorization | `Bearer <paste-your-PAT>`          |
+   | Accept        | `application/vnd.github+json`      |
+   | User-Agent    | `movie-notifier-cron`              |
+   | Content-Type  | `application/json`                 |
+8. **Save**. Within seconds the Actions tab shows a run with the event
+   *repository_dispatch (monitor)* — from now on every check lands on time to
+   the minute.
+9. Optional but recommended: cron-job.org sends **failure notifications** to
+   your email, so a broken trigger or expired PAT gets noticed immediately.
+
+> Need debug artifacts from an external trigger? Send the body
+> `{"event_type":"monitor","client_payload":{"debug":"true"}}` for one run,
+> then switch back to the plain body.
+
+GitHub's own hourly `schedule` stays in the workflow as a silent fallback:
+if cron-job.org or the PAT ever breaks, the state dedupe makes the GitHub
+scheduler's extra runs harmless (no duplicate emails) — you just lose
+punctuality, not coverage.
 
 ## Changing the alert semantics
 

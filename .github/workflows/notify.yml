@@ -1,15 +1,22 @@
 name: movie-notifier
 
 on:
-  schedule:
-    # hourly at :23 UTC — the off minute avoids GitHub's top-of-hour cron crunch
-    - cron: "23 * * * *"
+  # Primary triggers:
+  repository_dispatch:
+    # external HTTP cron (cron-job.org etc.) POSTs to
+    # https://api.github.com/repos/OWNER/REPO/dispatches {"event_type":"monitor"}
+    types: [monitor]
   workflow_dispatch:
     inputs:
       debug:
         description: "Save debug artifacts (raw API payloads, page text)"
         required: false
         default: "false"
+  # Fallback in case the external cron is ever down — GitHub's scheduler is
+  # loose (often late by minutes, occasionally skipped), which is fine for a
+  # backup: state dedupe makes double-runs harmless, no duplicate emails.
+  schedule:
+    - cron: "23 * * * *"
 
 permissions:
   contents: write
@@ -65,12 +72,12 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ vars.EMAIL_FROM || secrets.EMAIL_FROM }}
           EMAIL_TO: ${{ vars.EMAIL_TO || secrets.EMAIL_TO }}
-          DUMP: ${{ github.event.inputs.debug || 'false' }}
+          DUMP: ${{ github.event.inputs.debug || github.event.client_payload.debug || 'false' }}
           HEADLESS: "false"
         run: xvfb-run -a --server-args="-screen 0 1440x900x24" python main.py
 
       - name: Upload debug artifacts
-        if: ${{ always() && github.event.inputs.debug == 'true' }}
+        if: ${{ always() && (github.event.inputs.debug == 'true' || github.event.client_payload.debug == 'true') }}
         uses: actions/upload-artifact@v4
         with:
           name: debug-dump
