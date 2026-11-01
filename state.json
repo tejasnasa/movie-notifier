@@ -21,9 +21,12 @@
       "movie_display": "Godzilla Minus Zero",
       "city": "delhi",
       "date": "20261124",
-      "theater": "Priya"
+      "theater": "Priya",
+      "last_error_sig": "0f427eef2f82",
+      "last_error": "MonitorError: BookMyShow kept showing a Cloudflare challenge; try again later.",
+      "error_at": "2026-11-02T00:02:10+05:30"
     }
   },
-  "last_commit_at": "2026-11-01T22:00:47+05:30",
+  "last_commit_at": "2026-11-02T00:02:10+05:30",
   "last_heartbeat_at": "2026-11-01T22:00:47+05:30"
 }
