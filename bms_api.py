@@ -207,15 +207,23 @@ def _row_from_card(card: dict) -> dict | None:
         for sec in (card.get("showtimesSections") or []):
             chips.extend(sec.get("showtimes") or [])
     per_date: dict = {}
+    attrs_by_date: dict = {}
     for chip in chips:
         sa = chip.get("additionalData") or {}
         dc = str(sa.get("showDateCode") or sa.get("dateCode") or "")
         per_date[dc] = per_date.get(dc, 0) + 1
+        # screen labels (e.g. "LUXE", "PXL") — used for format-only filters
+        fmt = ((chip.get("cta") or {}).get("analytics") or {}).get("format")
+        for a in (chip.get("screenAttr"), fmt):
+            a = str(a or "").strip()
+            if a and a not in attrs_by_date.setdefault(dc, []):
+                attrs_by_date[dc].append(a)
     return {
         "name": str(name)[:140],
         "code": str(ad.get("venueCode") or ""),
         "shows": len(chips),
         "perDate": per_date,
+        "attrsByDate": attrs_by_date,
     }
 
 
@@ -280,11 +288,15 @@ def _merged_rows(variant_rows: list[dict]) -> tuple[list, dict]:
                     "code": v.get("code", ""),
                     "shows": int(v.get("shows", 0) or 0),
                     "perDate": dict(v.get("perDate") or {}),
+                    "attrsByDate": {d: list(a) for d, a in (v.get("attrsByDate") or {}).items()},
                     "formats": [_vlabel] if _vlabel else [],
                 }
                 order.append(key)
                 continue
             m["shows"] += int(v.get("shows", 0) or 0)
+            for d, attrs in (v.get("attrsByDate") or {}).items():
+                cur = m["attrsByDate"].setdefault(d, [])
+                cur.extend(a for a in attrs if a not in cur)
             for d, c in (v.get("perDate") or {}).items():
                 m["perDate"][d] = m["perDate"].get(d, 0) + int(c)
             if _vlabel and _vlabel not in m["formats"]:
@@ -392,7 +404,7 @@ def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
         "region_code": ri.code,
         "region_trusted": ri.trusted,
         "date_styles": parsed["date_styles"],
-    "variant_ets": list(tried),
+        "variant_ets": list(tried),
         "venue_formats": venue_formats,
         "variant_fetch_errors": variant_fetch_errors,
     }

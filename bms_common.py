@@ -170,6 +170,9 @@ def compose_result(
         "target_venues": venue_names_from_rows(rows),
         "show_counts": show_counts_from_rows(rows, target),
         "venue_dates": venue_dates_from_rows(rows),
+        "venue_attrs": {
+            v["name"]: list((v.get("attrsByDate") or {}).get(target, [])) for v in rows if v.get("name")
+        },
         "movie_display": resolution.name,
         "slug": resolution.slug,
         "et": resolution.et,
