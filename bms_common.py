@@ -26,6 +26,12 @@ class MonitorError(Exception):
     """The monitor run could not be completed (nav failure, parse failure, ...)."""
 
 
+class CloudflareBlocked(MonitorError):
+    """Cloudflare is blocking this machine/IP outright (GitHub runner IPs are
+    sometimes on its blocklist). Every further check from this runner would
+    fail the same way, so callers should stop the run."""
+
+
 def kebab(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", str(text or "").lower()).strip("-")
 

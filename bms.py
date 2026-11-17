@@ -34,6 +34,7 @@ import bms_api
 from bms_common import (
     DATE_RE,
     DEFAULT_EVENT_RE,
+    CloudflareBlocked,
     MonitorError,
     PLAY_HOME,
     Resolution,
@@ -71,11 +72,22 @@ EXTRACT_STATE_JS = r"""
           const ad = it.additionalData || {};
           let showCount = 0;
           const perDate = {};
-          for (const sec of (it.showtimesSections || [])) {
-            for (const chip of ((sec && sec.showtimes) || [])) {
-              showCount += 1;
-              const dc = (chip && chip.additionalData && chip.additionalData.showDateCode) || '';
-              perDate[dc] = (perDate[dc] || 0) + 1;
+          const attrsByDate = {};
+          const chips = [...(it.showtimes || [])];
+          if (!chips.length) {
+            for (const sec of (it.showtimesSections || [])) chips.push(...((sec && sec.showtimes) || []));
+          }
+          for (const chip of chips) {
+            showCount += 1;
+            const cad = (chip && chip.additionalData) || {};
+            const dc = String(cad.showDateCode || cad.dateCode || '');
+            perDate[dc] = (perDate[dc] || 0) + 1;
+            const fmt = chip && chip.cta && chip.cta.analytics && chip.cta.analytics.format;
+            for (let a of [chip && chip.screenAttr, fmt]) {
+              a = String(a || '').trim();
+              if (!a) continue;
+              attrsByDate[dc] = attrsByDate[dc] || [];
+              if (!attrsByDate[dc].includes(a)) attrsByDate[dc].push(a);
             }
           }
           venues.push({
@@ -83,6 +95,7 @@ EXTRACT_STATE_JS = r"""
             code: ad.venueCode || '',
             shows: showCount,
             perDate: perDate,
+            attrsByDate: attrsByDate,
           });
         }
       }
@@ -99,6 +112,20 @@ EXTRACT_STATE_JS = r"""
       eventCode: String((body.additionalData && body.additionalData.eventCode) || ''),
       venueCount: venues.length,
       venues: venues,
+      // format variants (IMAX / 3D / 4DX ... are separate event codes)
+      variants: (() => {
+        const res = [];
+        const fs = ((body.bottomSheetData || {})['format-selector']) || {};
+        for (const w of (fs.widgets || [])) {
+          if (!w || w.type !== 'chip-list') continue;
+          for (const chip of (w.data || [])) {
+            const label = String((chip && chip.title) || '').trim();
+            const codes = [...new Set((JSON.stringify(chip).match(/ET\d{5,}/g) || []))].sort();
+            for (const c of codes) if (!res.some(r => r[0] === c)) res.push([c, label]);
+          }
+        }
+        return res;
+      })(),
     });
   }
   return out;
@@ -461,7 +488,147 @@ def _dump_result(dump_dir: Path | None, result: dict) -> None:
         pass
 
 
-def run_monitor(cfg: dict, *, headless: bool, dump_dir: Path | None = None, log=print) -> dict:
+def _open_page(page, url: str, log) -> None:
+    for attempt in (1, 2):
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=45_000)
+            break
+        except Exception as exc:
+            if attempt == 2:
+                raise MonitorError(f"failed to load the buy-tickets page: {exc}") from exc
+            if _looks_like_challenge(page):
+                log("cloudflare challenge detected; waiting 30s and retrying")
+                page.wait_for_timeout(30_000)
+            else:
+                page.wait_for_timeout(10_000)
+    if _looks_like_challenge(page):
+        page.wait_for_timeout(30_000)
+        if _looks_like_challenge(page):
+            raise CloudflareBlocked("BookMyShow kept showing a Cloudflare challenge; try again later.")
+
+
+def _wait_for_state(page, log) -> list:
+    """Poll the SSR RTK state until the showtimes query has settled."""
+    saw_venues_at: int | None = None
+    qrows: list = []
+    elapsed = 0
+    while elapsed <= STATE_WAIT_MILLIS:
+        try:
+            qrows = page.evaluate(EXTRACT_STATE_JS)
+        except Exception as exc:
+            log(f"state extraction hiccup: {type(exc).__name__}")
+            qrows = []
+        primaries = [q for q in qrows if q.get("endpointName") == "fetchPrimaryDynamic" and not q.get("isError")]
+        if primaries and primaries[0].get("venueCount", 0) > 0:
+            if saw_venues_at is None:
+                saw_venues_at = elapsed
+            elif elapsed - saw_venues_at >= STATE_EXTRA_MILLIS:
+                break
+        elif primaries and primaries[0].get("venueCount", 0) == 0:
+            # zero venues for a fetched primary query: one more look to be
+            # sure it's not a mid-hydration artifact
+            page.wait_for_timeout(3_000)
+            try:
+                qrows = page.evaluate(EXTRACT_STATE_JS)
+            except Exception:
+                pass
+            break
+        page.wait_for_timeout(1_000)
+        elapsed += 1_000
+    return qrows
+
+
+MAX_VARIANTS = 8
+
+
+def _with_variants(page, cfg, resolution, base_row: dict, log) -> tuple[list, dict, list]:
+    """Union the base venue rows with every format variant's rows.
+
+    BookMyShow sells IMAX / 3D / 4DX etc. under separate event codes, and a
+    venue selling only a variant (e.g. PVR IMAX Priya) never appears in the
+    base listing, so each variant's buy-tickets page is opened too.
+    Returns (merged rows, venue -> formats, variant ETs used).
+    """
+    all_rows = [(base_row.get("venues") or [], "")]
+    used: list = []
+    for vcode, vlabel in base_row.get("variants") or []:
+        if vcode == resolution.et or vcode in used or len(used) >= MAX_VARIANTS:
+            continue
+        url = build_buy_url(cfg["city"], resolution.slug, vcode, cfg["datecode"])
+        try:
+            _open_page(page, url, log)
+            vq = _wait_for_state(page, log)
+        except CloudflareBlocked:
+            raise
+        except Exception as exc:  # noqa: BLE001 - one variant failing must not kill the run
+            log(f"browser: variant {vcode} failed ({type(exc).__name__}: {exc}) - continuing")
+            continue
+        vrow, _ = _pick_state_query(vq, cfg["datecode"])
+        rows = (vrow or {}).get("venues") or []
+        used.append(vcode)
+        all_rows.append((rows, vlabel))
+        log(f"browser: variant {vcode} ({vlabel or 'other format'}): {len(rows)} venues")
+    merged, formats = bms_api._merged_rows(all_rows)
+    return merged, formats, used
+
+
+IN_PAGE_FETCH_JS = """async ([url, headers]) => {
+  const r = await fetch(url, {headers, credentials: "include"});
+  return [r.status, await r.text()];
+}"""
+
+
+class BrowserSession:
+    """One Chromium shared by every check in a run, started lazily — only if
+    some check actually needs the browser fallback."""
+
+    def __init__(self, *, headless: bool):
+        self.headless = headless
+        self._pw = None
+        self._browser = None
+        self._page = None
+
+    def page(self):
+        if self._page is not None:
+            return self._page
+        self._pw = sync_playwright().start()
+        self._browser = self._pw.chromium.launch(
+            headless=self.headless,
+            args=["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"],
+        )
+        opts = dict(locale="en-IN", timezone_id="Asia/Kolkata", viewport={"width": 1400, "height": 900})
+        ctx = self._browser.new_context(**opts)
+        page = ctx.new_page()
+        if self.headless:
+            # keep a realistic UA even if someone forces headless locally
+            ua = page.evaluate("navigator.userAgent")
+            better = ua.replace("HeadlessChrome", "Chrome")
+            if better != ua:
+                ctx.close()
+                ctx = self._browser.new_context(user_agent=better, **opts)
+                page = ctx.new_page()
+        self._page = page
+        return page
+
+    def close(self) -> None:
+        for fn in (lambda: self._browser and self._browser.close(), lambda: self._pw and self._pw.stop()):
+            try:
+                fn()
+            except Exception:
+                pass
+        self._pw = self._browser = self._page = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+
+def run_monitor(
+    cfg: dict, *, headless: bool, dump_dir: Path | None = None, log=print,
+    session: "BrowserSession | None" = None,
+) -> dict:
     """Answer the question 'are tickets open?' for cfg.
 
     Strategy:
@@ -487,181 +654,148 @@ def run_monitor(cfg: dict, *, headless: bool, dump_dir: Path | None = None, log=
     if fast is not None:
         return fast
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=headless,
-            args=["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"],
-        )
+    own_session = session is None
+    if own_session:
+        session = BrowserSession(headless=headless)
+    page = session.page()
+    captured: list = []
+
+    def _on_response(r):
+        if PRIMARY_MARK in r.url:
+            captured.append(r)
+
+    page.on("response", _on_response)
+    try:
+        # --- resolve the movie (URL / ET code / name) -----------------------
         try:
-            ctx = browser.new_context(
-                locale="en-IN",
-                timezone_id="Asia/Kolkata",
-                viewport={"width": 1400, "height": 900},
+            resolution = resolve_movie(page, cfg, log)
+        except MonitorError:
+            raise
+        except Exception as exc:
+            raise MonitorError(f"movie resolution failed: {type(exc).__name__}: {exc}") from exc
+        log(
+            f"resolved via {resolution.via}: name={resolution.name!r} et={resolution.et} "
+            f"slug={resolution.slug!r}"
+        )
+        if dump_dir is not None:
+            (dump_dir / "resolved.json").write_text(
+                json.dumps(
+                    {
+                        "name": resolution.name,
+                        "slug": resolution.slug,
+                        "et": resolution.et,
+                        "via": resolution.via,
+                        "from_list": resolution.from_list,
+                        "candidates": resolution.candidates,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
             )
-            page = ctx.new_page()
 
-            if headless:
-                # keep a realistic UA even if someone forces headless locally
-                ua = page.evaluate("navigator.userAgent")
-                better = ua.replace("HeadlessChrome", "Chrome")
-                if better != ua:
-                    ctx.close()
-                    ctx = browser.new_context(
-                        user_agent=better,
-                        locale="en-IN",
-                        timezone_id="Asia/Kolkata",
-                        viewport={"width": 1400, "height": 900},
-                    )
-                    page = ctx.new_page()
+        buy_url = build_buy_url(cfg["city"], resolution.slug, resolution.et, cfg["datecode"])
+        log(f"opening {buy_url}")
 
-            # --- resolve the movie (URL / ET code / name) -----------------------
-            try:
-                resolution = resolve_movie(page, cfg, log)
-            except MonitorError:
-                raise
-            except Exception as exc:
-                raise MonitorError(f"movie resolution failed: {type(exc).__name__}: {exc}") from exc
-            log(
-                f"resolved via {resolution.via}: name={resolution.name!r} et={resolution.et} "
-                f"slug={resolution.slug!r}"
+
+        _open_page(page, buy_url, log)
+
+        # --- preferred: call the showtimes API from inside the page ------
+        # The page has passed Cloudflare, so an in-page fetch() gets the
+        # same full venue lists the fast path gets (the SSR state only
+        # holds a partial list, ~45 of 139 venues in testing), including
+        # format variants and screen labels.
+        def _page_fetch(url, headers):
+            return page.evaluate(IN_PAGE_FETCH_JS, [url, headers])
+
+        try:
+            result = bms_api.run_monitor_fast(cfg, log=log, dump_dir=dump_dir, fetcher=_page_fetch)
+            if result is not None:
+                _dump_result(dump_dir, result)
+                return result
+        except Exception as exc:  # noqa: BLE001
+            log(f"in-page API failed ({type(exc).__name__}: {exc}) — reading the page state instead")
+
+        # --- primary source: SSR RTK state ----------------------------------
+        qrows = _wait_for_state(page, log)
+
+        if dump_dir is not None:
+            (dump_dir / "state_summary.json").write_text(
+                json.dumps(qrows, indent=2), encoding="utf-8"
             )
-            if dump_dir is not None:
-                (dump_dir / "resolved.json").write_text(
-                    json.dumps(
-                        {
-                            "name": resolution.name,
-                            "slug": resolution.slug,
-                            "et": resolution.et,
-                            "via": resolution.via,
-                            "from_list": resolution.from_list,
-                            "candidates": resolution.candidates,
-                        },
-                        indent=2,
-                    ),
-                    encoding="utf-8",
+
+        primary = [q for q in qrows if q.get("endpointName") == "fetchPrimaryDynamic"]
+        if primary:
+            all_error = all(q.get("isError") for q in primary)
+            if all_error:
+                raise MonitorError(
+                    "BookMyShow's showtimes API returned an error inside the page (isError=true). "
+                    "This often means the site is briefly broken; it may recover."
                 )
-
-            buy_url = build_buy_url(cfg["city"], resolution.slug, resolution.et, cfg["datecode"])
-            log(f"opening {buy_url}")
-
-            # network capture (fallback source)
-            captured: list = []
-            page.on("response", lambda r: captured.append(r) if PRIMARY_MARK in r.url else None)
-
-            for attempt in (1, 2):
-                try:
-                    page.goto(buy_url, wait_until="domcontentloaded", timeout=45_000)
-                    break
-                except Exception as exc:
-                    if attempt == 2:
-                        raise MonitorError(f"failed to load the buy-tickets page: {exc}") from exc
-                    if _looks_like_challenge(page):
-                        log("cloudflare challenge detected; waiting 30s and retrying")
-                        page.wait_for_timeout(30_000)
-                    else:
-                        page.wait_for_timeout(10_000)
-
-            if _looks_like_challenge(page):
-                page.wait_for_timeout(30_000)
-                if _looks_like_challenge(page):
-                    raise MonitorError("BookMyShow kept showing a Cloudflare challenge; try again later.")
-
-            # --- primary source: SSR RTK state ----------------------------------
-            saw_venues_at: int | None = None
-            qrows: list = []
-            deadline_ms = STATE_WAIT_MILLIS
-            elapsed = 0
-            while elapsed <= deadline_ms:
-                try:
-                    qrows = page.evaluate(EXTRACT_STATE_JS)
-                except Exception as exc:
-                    log(f"state extraction hiccup: {type(exc).__name__}")
-                    qrows = []
-                primaries = [q for q in qrows if q.get("endpointName") == "fetchPrimaryDynamic" and not q.get("isError")]
-                if primaries and primaries[0].get("venueCount", 0) > 0:
-                    if saw_venues_at is None:
-                        saw_venues_at = elapsed
-                    elif elapsed - saw_venues_at >= STATE_EXTRA_MILLIS:
-                        break
-                elif primaries and primaries[0].get("venueCount", 0) == 0:
-                    # zero venues for a fetched primary query: one more look to be
-                    # sure it's not a mid-hydration artifact
-                    page.wait_for_timeout(3_000)
-                    elapsed += 3_000
-                    try:
-                        qrows = page.evaluate(EXTRACT_STATE_JS)
-                    except Exception:
-                        pass
-                    break
-                page.wait_for_timeout(1_000)
-                elapsed += 1_000
-
-            if dump_dir is not None:
-                (dump_dir / "state_summary.json").write_text(
-                    json.dumps(qrows, indent=2), encoding="utf-8"
-                )
-
-            primary = [q for q in qrows if q.get("endpointName") == "fetchPrimaryDynamic"]
-            if primary:
-                all_error = all(q.get("isError") for q in primary)
-                if all_error:
-                    raise MonitorError(
-                        "BookMyShow's showtimes API returned an error inside the page (isError=true). "
-                        "This often means the site is briefly broken; it may recover."
-                    )
-                qrow, state_txt = _pick_state_query(qrows, cfg["datecode"])
-                if qrow is not None:
-                    if qrow.get("venueCount", 0) > 0:
-                        result = _result_from_state_row(cfg, resolution, buy_url, qrow, state_txt)
-                        _dump_result(dump_dir, result)
-                        return result
+            qrow, state_txt = _pick_state_query(qrows, cfg["datecode"])
+            if qrow is not None:
+                if qrow.get("venueCount", 0) == 0:
                     rows_above = [q for q in primary if q.get("venueCount", 0) > 0]
                     if rows_above:
                         # prefer a row that has venues even if date picks missed
-                        result = _result_from_state_row(cfg, resolution, buy_url, rows_above[0], "fallback-row")
-                        _dump_result(dump_dir, result)
-                        return result
-                    log("primary-dynamic loaded with zero venues for this date")
-                    result = _empty_result(
-                        cfg, resolution, buy_url, "state",
-                        {"note": "primary-dynamic fetched; venue count = 0", "query_key": qrow.get("key")},
+                        # (main.py only counts shows dated on the target date)
+                        base_variants = qrow.get("variants") or []
+                        qrow, state_txt = dict(rows_above[0]), "fallback-row"
+                        qrow.setdefault("variants", base_variants)
+                merged, formats, used = _with_variants(page, cfg, resolution, qrow, log)
+                if merged:
+                    result = _result_from_state_row(
+                        cfg, resolution, buy_url, dict(qrow, venues=merged), state_txt
                     )
+                    result["venue_formats"] = formats
+                    result["variant_ets"] = used
+                    _dump_result(dump_dir, result)
+                    return result
+                log("primary-dynamic loaded with zero venues for this date (base + variants)")
+                result = _empty_result(
+                    cfg, resolution, buy_url, "state",
+                    {"note": "primary-dynamic fetched; venue count = 0", "query_key": qrow.get("key")},
+                )
+                _dump_result(dump_dir, result)
+                return result
+
+        # --- fallback: intercepted primary-dynamic responses ----------------
+        payloads: list[dict] = []
+        for r in captured:
+            try:
+                body = r.json()
+            except Exception:
+                continue
+            payloads.append({"url": r.url, "datecode": _query_date(r.url), "body": body})
+        if dump_dir is not None:
+            for i, pl in enumerate(payloads):
+                (dump_dir / f"primary_dynamic_{i:02d}.json").write_text(
+                    json.dumps(pl["body"], indent=2, default=str), encoding="utf-8"
+                )
+        if payloads:
+            parsed_rows = [_g for _g in _generic_parse(payloads)]
+            for qrow in parsed_rows:
+                if qrow["venues"]:
+                    result = _result_from_state_row(cfg, resolution, buy_url, qrow, "api")
+                    result["source"] = "api"
                     _dump_result(dump_dir, result)
                     return result
 
-            # --- fallback: intercepted primary-dynamic responses ----------------
-            payloads: list[dict] = []
-            for r in captured:
-                try:
-                    body = r.json()
-                except Exception:
-                    continue
-                payloads.append({"url": r.url, "datecode": _query_date(r.url), "body": body})
-            if dump_dir is not None:
-                for i, pl in enumerate(payloads):
-                    (dump_dir / f"primary_dynamic_{i:02d}.json").write_text(
-                        json.dumps(pl["body"], indent=2, default=str), encoding="utf-8"
-                    )
-            if payloads:
-                parsed_rows = [_g for _g in _generic_parse(payloads)]
-                for qrow in parsed_rows:
-                    if qrow["venues"]:
-                        result = _result_from_state_row(cfg, resolution, buy_url, qrow, "api")
-                        result["source"] = "api"
-                        _dump_result(dump_dir, result)
-                        return result
-
-            # --- last resort: DOM text ------------------------------------------
-            text = _body_text(page)
-            if dump_dir is not None:
-                (dump_dir / "page_text.txt").write_text(text, encoding="utf-8")
-                _dump_result(dump_dir, {"note": "dom-fallback", "url": page.url})
-            if _no_shows_dom(text):
-                return _empty_result(cfg, resolution, buy_url, "dom", {"note": "no-shows empty state in DOM"})
-            snippet = " ".join(text.split())[:300]
-            raise MonitorError(
-                "no showtimes data could be read (no state, no API response, no DOM marker) "
-                f"— page said: {snippet!r}"
-            )
-        finally:
-            browser.close()
+        # --- last resort: DOM text ------------------------------------------
+        text = _body_text(page)
+        if dump_dir is not None:
+            (dump_dir / "page_text.txt").write_text(text, encoding="utf-8")
+            _dump_result(dump_dir, {"note": "dom-fallback", "url": page.url})
+        if _no_shows_dom(text):
+            return _empty_result(cfg, resolution, buy_url, "dom", {"note": "no-shows empty state in DOM"})
+        snippet = " ".join(text.split())[:300]
+        raise MonitorError(
+            "no showtimes data could be read (no state, no API response, no DOM marker) "
+            f"— page said: {snippet!r}"
+        )
+    finally:
+        try:
+            page.remove_listener("response", _on_response)
+        except Exception:
+            pass
+        if own_session:
+            session.close()

@@ -28,7 +28,8 @@ import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from bms import run_monitor
+from bms import BrowserSession, run_monitor
+from bms_common import CloudflareBlocked
 from resend_email import send_email
 from state_store import git_commit_file, heartbeat_due, load_state, save_state
 
@@ -262,12 +263,14 @@ def _send(cfg: dict, subject: str, body_html: str) -> None:
 # run logic
 # ---------------------------------------------------------------------------
 
-def _monitor_with_retry(mcfg: dict, args, cfg: dict) -> dict:
+def _monitor_with_retry(mcfg: dict, args, cfg: dict, session: BrowserSession) -> dict:
     dump_dir = ROOT / "debug" if (args.dump or os.getenv("DUMP", "").lower() == "true") else None
     last: Exception | None = None
     for attempt in (1, 2):
         try:
-            return run_monitor(mcfg, headless=cfg["headless"], dump_dir=dump_dir, log=log)
+            return run_monitor(mcfg, headless=cfg["headless"], dump_dir=dump_dir, log=log, session=session)
+        except CloudflareBlocked:
+            raise  # retrying from the same runner is pointless
         except Exception as exc:  # noqa: BLE001
             last = exc
             log(f"attempt {attempt} failed: {type(exc).__name__}: {exc}")
@@ -276,7 +279,9 @@ def _monitor_with_retry(mcfg: dict, args, cfg: dict) -> dict:
     raise last  # type: ignore[misc]
 
 
-def check_one(target: dict, iso_date: str, state: dict, cfg: dict, args) -> tuple[bool, tuple | None]:
+def check_one(
+    target: dict, iso_date: str, state: dict, cfg: dict, args, session: BrowserSession
+) -> tuple[bool, tuple | None]:
     """Check one (movie, date). Returns (state changed, new error or None)."""
     d = date.fromisoformat(iso_date)
     datecode, date_display = d.strftime("%Y%m%d"), d.strftime("%a, %d %b %Y")
@@ -288,7 +293,9 @@ def check_one(target: dict, iso_date: str, state: dict, cfg: dict, args) -> tupl
     mcfg = {"movie": target["url"], "city": CITY, "datecode": datecode, "date_display": date_display,
             "theater": "", "movie_is_url": True}
     try:
-        result = _monitor_with_retry(mcfg, args, cfg)
+        result = _monitor_with_retry(mcfg, args, cfg, session)
+    except CloudflareBlocked:
+        raise
     except Exception as exc:  # noqa: BLE001
         msg = f"{type(exc).__name__}: {exc}"
         sig = hashlib.sha256(msg.encode()).hexdigest()[:12]
@@ -366,14 +373,27 @@ def run_flow(args) -> int:
     today = datetime.now(IST).date().isoformat()
     changed = False
     errors: list[tuple[str, str]] = []
-    for target in TARGETS:
-        for iso_date in target["dates"]:
-            if iso_date < today:
-                continue
-            c, err = check_one(target, iso_date, state, cfg, args)
-            changed |= c
-            if err:
-                errors.append(err)
+    blocked = False
+    # One shared browser for the whole run; only started if some check
+    # actually needs the browser fallback.
+    with BrowserSession(headless=cfg["headless"]) as session:
+        try:
+            for target in TARGETS:
+                for iso_date in target["dates"]:
+                    if iso_date < today:
+                        continue
+                    c, err = check_one(target, iso_date, state, cfg, args, session)
+                    changed |= c
+                    if err:
+                        errors.append(err)
+        except CloudflareBlocked as exc:
+            # GitHub runner IPs are sometimes on Cloudflare's blocklist; every
+            # remaining check would fail identically. Stop now — the next run
+            # lands on a different runner/IP and normally works.
+            blocked = True
+            log(f"Cloudflare is blocking this runner ({exc}) — skipping the remaining checks this run")
+            print("::warning::Cloudflare blocked this runner's IP; checks skipped this run (next run will retry)",
+                  flush=True)
 
     if args.dry_run:
         return 0

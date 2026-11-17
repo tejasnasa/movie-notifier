@@ -151,8 +151,15 @@ def _headers(ri: RegionInfo, ua_pair) -> dict:
     }
 
 
-def fetch_primary_dynamic(et: str, datecode: str, ri: RegionInfo, *, timeout: float = 20.0) -> dict:
-    """GET the primary-dynamic showtimes payload. Raises FastPathError on trouble."""
+def fetch_primary_dynamic(
+    et: str, datecode: str, ri: RegionInfo, *, timeout: float = 20.0, fetcher=None
+) -> dict:
+    """GET the primary-dynamic showtimes payload. Raises FastPathError on trouble.
+
+    fetcher: optional callable(url, headers) -> (status, text) used instead of
+    urllib, e.g. a fetch() run inside a real browser page that has already
+    passed Cloudflare (the browser supplies UA / client hints / cookies).
+    """
     params = {
         "eventCode": et,
         "dateCode": datecode,
@@ -166,6 +173,19 @@ def fetch_primary_dynamic(et: str, datecode: str, ri: RegionInfo, *, timeout: fl
         "lon": ri.lon or "0",
     }
     url = API_URL + "?" + urllib.parse.urlencode(params)
+    if fetcher is not None:
+        hdrs = {k: v for k, v in _headers(ri, _UA_TRIPLE[0]).items()
+                if k.lower().startswith("x-") or k == "Accept"}
+        try:
+            status, text = fetcher(url, hdrs)
+        except Exception as exc:  # noqa: BLE001
+            raise FastPathError(f"in-page API call failed: {type(exc).__name__}: {exc}") from exc
+        if status != 200:
+            raise FastPathError(f"in-page API HTTP {status}")
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise FastPathError(f"in-page API returned non-JSON: {exc}") from exc
     last = ""
     for ua_pair in _UA_TRIPLE:
         req = urllib.request.Request(url, headers=_headers(ri, ua_pair), method="GET")
@@ -189,7 +209,8 @@ def fetch_primary_dynamic(et: str, datecode: str, ri: RegionInfo, *, timeout: fl
         except (urllib.error.URLError, TimeoutError) as exc:
             last = f"API network error: {exc}"
             continue
-    _skip_rest_of_process()
+    # Don't disable the fast path for the rest of the run: one hiccup shouldn't
+    # push every later check onto the (slow) browser path.
     raise FastPathError(last or "API unreachable")
 
 
@@ -304,14 +325,14 @@ def _merged_rows(variant_rows: list[dict]) -> tuple[list, dict]:
     return [merged[k] for k in order], {m["name"]: m["formats"] for m in merged.values()}
 
 
-def fetch_event_and_rows(et: str, datecode: str, ri: RegionInfo) -> tuple[list, dict, dict]:
+def fetch_event_and_rows(et: str, datecode: str, ri: RegionInfo, fetcher=None) -> tuple[list, dict, dict]:
     """Fetch one event code's primary-dynamic payload and row-parse it.
 
     Returns (venue rows, parsed summary, raw body). The parsed summary also
     carries ['format_variants'] — the (etcode, format label) pairs advertised
     by this payload's format-selector.
     """
-    body = fetch_primary_dynamic(et, datecode, ri)
+    body = fetch_primary_dynamic(et, datecode, ri, fetcher=fetcher)
     parsed = parse_body(body)
     if parsed["body_et"] and parsed["body_et"].upper() != et:
         raise FastPathError(
@@ -325,13 +346,14 @@ def fetch_event_and_rows(et: str, datecode: str, ri: RegionInfo) -> tuple[list, 
 # top-level fast-path run
 # ---------------------------------------------------------------------------
 
-def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
+def run_monitor_fast(cfg: dict, log=print, dump_dir=None, fetcher=None) -> dict | None:
     """Answer with zero browser usage when possible.
 
     Returns a result dict (main.py contract) or None to signal 'use bms.py'
     (the headed-browser path). Errors surface as FastPathError.
     """
-    if _fastpath_disabled():
+    source = "browser-api" if fetcher is not None else "api"
+    if fetcher is None and _fastpath_disabled():
         raise FastPathError("fast path disabled via BMS_FASTPATH")
 
     movie = str(cfg["movie"]).strip()
@@ -353,7 +375,7 @@ def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
         # the region from the live page instead.
         raise FastPathError(f"city '{cfg['city']}' not in regions.json — falling back")
 
-    base_rows, parsed, base_body = fetch_event_and_rows(et, cfg["datecode"], ri)
+    base_rows, parsed, base_body = fetch_event_and_rows(et, cfg["datecode"], ri, fetcher)
 
     if dump_dir is not None:
         try:
@@ -376,7 +398,7 @@ def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
         if vcode == et or vcode in tried or len(tried) >= MAX_VARIANTS:
             continue
         try:
-            vrows, _vparsed, _vbody = fetch_event_and_rows(vcode, cfg["datecode"], ri)
+            vrows, _vparsed, _vbody = fetch_event_and_rows(vcode, cfg["datecode"], ri, fetcher)
             tried.append(vcode)
             all_rows.append((vrows, vlabel))
             log(f"fast path: variant {vcode} ({vlabel or 'other format'}): {len(vrows)} venues")
@@ -411,12 +433,12 @@ def run_monitor_fast(cfg: dict, log=print, dump_dir=None) -> dict | None:
 
     if rows:
         return compose_result(
-            source="api", resolution=resolution, buy_url=buy_url, rows=rows,
+            source=source, resolution=resolution, buy_url=buy_url, rows=rows,
             target=cfg["datecode"], date_state=state, extras=extras,
         )
 
     log("fast path: zero venues across base + all format variants; region canonical — trustworthy")
     return compose_result(
-        source="api", resolution=resolution, buy_url=buy_url, rows=[],
+        source=source, resolution=resolution, buy_url=buy_url, rows=[],
         target=cfg["datecode"], date_state="on-date", extras=extras,
     )
