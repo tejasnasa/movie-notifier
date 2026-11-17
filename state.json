@@ -25,8 +25,134 @@
       "last_error_sig": "0f427eef2f82",
       "last_error": "MonitorError: BookMyShow kept showing a Cloudflare challenge; try again later.",
       "error_at": "2026-11-02T00:02:10+05:30"
+    },
+    "b0daddfec6d2c18a": {
+      "movie": "Godzilla Minus Zero",
+      "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
+      "date": "20261120",
+      "status": "watching"
+    },
+    "4e1be897d4aafe51": {
+      "movie": "Godzilla Minus Zero",
+      "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
+      "date": "20261123",
+      "status": "watching"
+    },
+    "aa612002611a155b": {
+      "movie": "Godzilla Minus Zero",
+      "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
+      "date": "20261124",
+      "status": "watching"
+    },
+    "6b308dbccb2efb19": {
+      "movie": "The Hunger Games: Sunrise on the Reaping",
+      "url": "https://in.bookmyshow.com/movies/delhi/the-hunger-games-sunrise-on-the-reaping/ET00496180",
+      "date": "20261120",
+      "status": "watching"
+    },
+    "4327a191ff443b4f": {
+      "movie": "The Hunger Games: Sunrise on the Reaping",
+      "url": "https://in.bookmyshow.com/movies/delhi/the-hunger-games-sunrise-on-the-reaping/ET00496180",
+      "date": "20261123",
+      "status": "watching"
+    },
+    "ae5be0b1d292cbaf": {
+      "movie": "The Hunger Games: Sunrise on the Reaping",
+      "url": "https://in.bookmyshow.com/movies/delhi/the-hunger-games-sunrise-on-the-reaping/ET00496180",
+      "date": "20261124",
+      "status": "watching"
+    },
+    "5e570eb8cc88a421": {
+      "movie": "You Can See Everything",
+      "url": "https://in.bookmyshow.com/movies/delhi/you-can-see-everything/ET00526232",
+      "date": "20261127",
+      "status": "watching"
+    },
+    "6bfd27285eb46793": {
+      "movie": "You Can See Everything",
+      "url": "https://in.bookmyshow.com/movies/delhi/you-can-see-everything/ET00526232",
+      "date": "20261201",
+      "status": "watching"
+    },
+    "c65cd07235447226": {
+      "movie": "You Can See Everything",
+      "url": "https://in.bookmyshow.com/movies/delhi/you-can-see-everything/ET00526232",
+      "date": "20261202",
+      "status": "watching"
+    },
+    "c5bd0dbad6eac388": {
+      "movie": "Dune: Part Three",
+      "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
+      "date": "20261217",
+      "status": "watching"
+    },
+    "19bc5bfb33cf155a": {
+      "movie": "Dune: Part Three",
+      "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
+      "date": "20261218",
+      "status": "watching"
+    },
+    "cc3ad6f0c373c31a": {
+      "movie": "Dune: Part Three",
+      "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
+      "date": "20261219",
+      "status": "watching"
+    },
+    "a3d8e0416a53e791": {
+      "movie": "Dune: Part Three",
+      "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
+      "date": "20261220",
+      "status": "watching"
+    },
+    "1793882fa3f2c811": {
+      "movie": "Dune: Part Three",
+      "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
+      "date": "20261221",
+      "status": "watching"
+    },
+    "12356b96130bbffd": {
+      "movie": "Dune: Part Three",
+      "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
+      "date": "20261222",
+      "status": "watching"
+    },
+    "89e087407d70d837": {
+      "movie": "Avengers: Doomsday",
+      "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
+      "date": "20261217",
+      "status": "open_elsewhere"
+    },
+    "bade7a5302b49dff": {
+      "movie": "Avengers: Doomsday",
+      "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
+      "date": "20261218",
+      "status": "open_elsewhere"
+    },
+    "de56635418c801ef": {
+      "movie": "Avengers: Doomsday",
+      "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
+      "date": "20261219",
+      "status": "open_elsewhere"
+    },
+    "83bf2b7ea6d351ef": {
+      "movie": "Avengers: Doomsday",
+      "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
+      "date": "20261220",
+      "status": "open_elsewhere"
+    },
+    "3c270bf3983038a1": {
+      "movie": "Avengers: Doomsday",
+      "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
+      "date": "20261221",
+      "status": "watching"
+    },
+    "c02cab2caec3d76e": {
+      "movie": "Avengers: Doomsday",
+      "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
+      "date": "20261222",
+      "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-17T08:00:53+05:30",
+  "last_commit_at": "2026-11-17T19:01:07+05:30",
   "last_heartbeat_at": "2026-11-17T08:00:53+05:30"
 }
