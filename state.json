@@ -30,7 +30,11 @@
       "movie": "Godzilla Minus Zero",
       "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
       "date": "20261120",
-      "status": "open_elsewhere"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-18T20:03:49+05:30"
     },
     "4e1be897d4aafe51": {
       "movie": "Godzilla Minus Zero",
@@ -48,7 +52,11 @@
       "movie": "The Hunger Games: Sunrise on the Reaping",
       "url": "https://in.bookmyshow.com/movies/delhi/the-hunger-games-sunrise-on-the-reaping/ET00496180",
       "date": "20261120",
-      "status": "watching"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-18T20:03:51+05:30"
     },
     "4327a191ff443b4f": {
       "movie": "The Hunger Games: Sunrise on the Reaping",
@@ -153,6 +161,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-18T19:01:08+05:30",
+  "last_commit_at": "2026-11-18T20:04:26+05:30",
   "last_heartbeat_at": "2026-11-18T15:01:23+05:30"
 }
