@@ -30,7 +30,7 @@
       "movie": "Godzilla Minus Zero",
       "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
       "date": "20261120",
-      "status": "watching"
+      "status": "open_elsewhere"
     },
     "4e1be897d4aafe51": {
       "movie": "Godzilla Minus Zero",
@@ -153,6 +153,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-18T15:01:23+05:30",
+  "last_commit_at": "2026-11-18T19:01:08+05:30",
   "last_heartbeat_at": "2026-11-18T15:01:23+05:30"
 }
