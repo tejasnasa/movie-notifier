@@ -32,9 +32,10 @@
       "date": "20261120",
       "status": "open",
       "notified_venues": [
-        "Cinepolis: Pacific NSP2, Delhi"
+        "Cinepolis: Pacific NSP2, Delhi",
+        "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-18T20:03:49+05:30"
+      "notified_at": "2026-11-19T00:01:02+05:30"
     },
     "4e1be897d4aafe51": {
       "movie": "Godzilla Minus Zero",
@@ -54,9 +55,10 @@
       "date": "20261120",
       "status": "open",
       "notified_venues": [
-        "Cinepolis: Pacific NSP2, Delhi"
+        "Cinepolis: Pacific NSP2, Delhi",
+        "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-18T20:03:51+05:30"
+      "notified_at": "2026-11-19T00:01:05+05:30"
     },
     "4327a191ff443b4f": {
       "movie": "The Hunger Games: Sunrise on the Reaping",
@@ -161,6 +163,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-18T20:04:26+05:30",
+  "last_commit_at": "2026-11-19T00:01:31+05:30",
   "last_heartbeat_at": "2026-11-18T15:01:23+05:30"
 }
