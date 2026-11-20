@@ -48,7 +48,7 @@
       "movie": "Godzilla Minus Zero",
       "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
       "date": "20261124",
-      "status": "watching"
+      "status": "open_elsewhere"
     },
     "6b308dbccb2efb19": {
       "movie": "The Hunger Games: Sunrise on the Reaping",
@@ -181,6 +181,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-20T23:01:52+05:30",
+  "last_commit_at": "2026-11-21T01:01:23+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
