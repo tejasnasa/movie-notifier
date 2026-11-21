@@ -55,9 +55,10 @@
       "date": "20261124",
       "status": "open",
       "notified_venues": [
-        "Cinepolis: Pacific NSP2, Delhi"
+        "Cinepolis: Pacific NSP2, Delhi",
+        "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-21T14:00:51+05:30"
+      "notified_at": "2026-11-21T16:58:17+05:30"
     },
     "6b308dbccb2efb19": {
       "movie": "The Hunger Games: Sunrise on the Reaping",
@@ -113,7 +114,7 @@
       "movie": "Dune: Part Three",
       "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
       "date": "20261217",
-      "status": "open",
+      "status": "open_elsewhere",
       "notified_venues": [
         "PVR IMAX with Laser, Priya: Delhi"
       ],
@@ -214,6 +215,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-21T16:01:22+05:30",
+  "last_commit_at": "2026-11-21T16:58:55+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
