@@ -42,13 +42,21 @@
       "movie": "Godzilla Minus Zero",
       "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
       "date": "20261123",
-      "status": "open_elsewhere"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-21T14:00:50+05:30"
     },
     "aa612002611a155b": {
       "movie": "Godzilla Minus Zero",
       "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
       "date": "20261124",
-      "status": "open_elsewhere"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-21T14:00:51+05:30"
     },
     "6b308dbccb2efb19": {
       "movie": "The Hunger Games: Sunrise on the Reaping",
@@ -66,13 +74,21 @@
       "movie": "The Hunger Games: Sunrise on the Reaping",
       "url": "https://in.bookmyshow.com/movies/delhi/the-hunger-games-sunrise-on-the-reaping/ET00496180",
       "date": "20261123",
-      "status": "watching"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-21T14:00:56+05:30"
     },
     "ae5be0b1d292cbaf": {
       "movie": "The Hunger Games: Sunrise on the Reaping",
       "url": "https://in.bookmyshow.com/movies/delhi/the-hunger-games-sunrise-on-the-reaping/ET00496180",
       "date": "20261124",
-      "status": "watching"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-21T14:00:57+05:30"
     },
     "5e570eb8cc88a421": {
       "movie": "You Can See Everything",
@@ -158,7 +174,7 @@
       "movie": "Avengers: Doomsday",
       "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
       "date": "20261218",
-      "status": "open",
+      "status": "open_elsewhere",
       "notified_venues": [
         "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
@@ -197,6 +213,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-21T02:51:42+05:30",
+  "last_commit_at": "2026-11-21T14:01:27+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
