@@ -114,7 +114,7 @@
       "movie": "Dune: Part Three",
       "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
       "date": "20261217",
-      "status": "open_elsewhere",
+      "status": "open",
       "notified_venues": [
         "PVR IMAX with Laser, Priya: Delhi"
       ],
@@ -176,7 +176,7 @@
       "movie": "Avengers: Doomsday",
       "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
       "date": "20261218",
-      "status": "open_elsewhere",
+      "status": "open",
       "notified_venues": [
         "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
@@ -186,7 +186,7 @@
       "movie": "Avengers: Doomsday",
       "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
       "date": "20261219",
-      "status": "open",
+      "status": "open_elsewhere",
       "notified_venues": [
         "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
@@ -215,6 +215,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-21T16:58:55+05:30",
+  "last_commit_at": "2026-11-21T21:01:26+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
