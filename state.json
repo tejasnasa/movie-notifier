@@ -45,9 +45,10 @@
       "status": "open",
       "notified_venues": [
         "Cinepolis: Pacific NSP2, Delhi",
+        "PVR IMAX with Laser, Priya: Delhi",
         "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-21T16:00:50+05:30"
+      "notified_at": "2026-11-21T22:00:59+05:30"
     },
     "aa612002611a155b": {
       "movie": "Godzilla Minus Zero",
@@ -215,6 +216,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-21T21:01:26+05:30",
+  "last_commit_at": "2026-11-21T22:01:33+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
