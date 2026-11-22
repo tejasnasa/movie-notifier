@@ -57,9 +57,10 @@
       "status": "open",
       "notified_venues": [
         "Cinepolis: Pacific NSP2, Delhi",
+        "PVR IMAX with Laser, Priya: Delhi",
         "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-21T16:58:17+05:30"
+      "notified_at": "2026-11-22T13:01:10+05:30"
     },
     "6b308dbccb2efb19": {
       "movie": "The Hunger Games: Sunrise on the Reaping",
@@ -92,9 +93,10 @@
       "status": "open",
       "notified_venues": [
         "Cinepolis: Pacific NSP2, Delhi",
+        "PVR IMAX with Laser, Priya: Delhi",
         "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-22T00:00:51+05:30"
+      "notified_at": "2026-11-22T13:01:13+05:30"
     },
     "5e570eb8cc88a421": {
       "movie": "You Can See Everything",
@@ -219,6 +221,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-22T01:01:39+05:30",
+  "last_commit_at": "2026-11-22T13:02:05+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
