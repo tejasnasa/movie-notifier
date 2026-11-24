@@ -54,7 +54,7 @@
       "movie": "Godzilla Minus Zero",
       "url": "https://in.bookmyshow.com/movies/delhi/godzilla-minus-zero/ET00524518",
       "date": "20261124",
-      "status": "open",
+      "status": "open_elsewhere",
       "notified_venues": [
         "Cinepolis: Pacific NSP2, Delhi",
         "PVR IMAX with Laser, Priya: Delhi",
@@ -221,6 +221,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-24T20:01:38+05:30",
+  "last_commit_at": "2026-11-24T22:01:34+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
