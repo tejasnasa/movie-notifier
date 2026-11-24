@@ -130,7 +130,7 @@
       "movie": "Dune: Part Three",
       "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
       "date": "20261218",
-      "status": "open",
+      "status": "open_elsewhere",
       "notified_venues": [
         "PVR IMAX with Laser, Priya: Delhi"
       ],
@@ -150,7 +150,7 @@
       "movie": "Dune: Part Three",
       "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
       "date": "20261220",
-      "status": "open",
+      "status": "open_elsewhere",
       "notified_venues": [
         "PVR IMAX with Laser, Priya: Delhi"
       ],
@@ -221,6 +221,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-24T22:01:34+05:30",
+  "last_commit_at": "2026-11-25T00:01:31+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
