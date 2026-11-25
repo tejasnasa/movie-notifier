@@ -102,7 +102,12 @@
       "movie": "You Can See Everything",
       "url": "https://in.bookmyshow.com/movies/delhi/you-can-see-everything/ET00526232",
       "date": "20261127",
-      "status": "open_elsewhere"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi",
+        "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
+      ],
+      "notified_at": "2026-11-25T20:00:54+05:30"
     },
     "6bfd27285eb46793": {
       "movie": "You Can See Everything",
@@ -221,6 +226,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-25T19:01:23+05:30",
+  "last_commit_at": "2026-11-25T20:01:28+05:30",
   "last_heartbeat_at": "2026-11-19T22:01:36+05:30"
 }
