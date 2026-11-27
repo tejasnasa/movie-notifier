@@ -207,7 +207,7 @@
       "movie": "Avengers: Doomsday",
       "url": "https://in.bookmyshow.com/movies/delhi/avengers-doomsday/ET00439706",
       "date": "20261220",
-      "status": "open_elsewhere",
+      "status": "open",
       "notified_venues": [
         "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
@@ -226,6 +226,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-27T14:01:38+05:30",
+  "last_commit_at": "2026-11-27T15:01:18+05:30",
   "last_heartbeat_at": "2026-11-27T09:01:33+05:30"
 }
