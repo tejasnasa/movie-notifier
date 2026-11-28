@@ -115,9 +115,10 @@
       "date": "20261201",
       "status": "open",
       "notified_venues": [
-        "Cinepolis: Pacific NSP2, Delhi"
+        "Cinepolis: Pacific NSP2, Delhi",
+        "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-28T16:00:45+05:30"
+      "notified_at": "2026-11-29T00:00:54+05:30"
     },
     "c65cd07235447226": {
       "movie": "You Can See Everything",
@@ -125,9 +126,10 @@
       "date": "20261202",
       "status": "open",
       "notified_venues": [
-        "Cinepolis: Pacific NSP2, Delhi"
+        "Cinepolis: Pacific NSP2, Delhi",
+        "PVR: Cinemagic, Unity One Elegante, NSP, Pitampura"
       ],
-      "notified_at": "2026-11-28T16:00:46+05:30"
+      "notified_at": "2026-11-29T00:00:54+05:30"
     },
     "c5bd0dbad6eac388": {
       "movie": "Dune: Part Three",
@@ -163,7 +165,7 @@
       "movie": "Dune: Part Three",
       "url": "https://in.bookmyshow.com/movies/delhi/dune-part-three/ET00491771",
       "date": "20261220",
-      "status": "open_elsewhere",
+      "status": "open",
       "notified_venues": [
         "PVR IMAX with Laser, Priya: Delhi"
       ],
@@ -234,6 +236,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-28T20:01:38+05:30",
+  "last_commit_at": "2026-11-29T00:01:35+05:30",
   "last_heartbeat_at": "2026-11-27T09:01:33+05:30"
 }
