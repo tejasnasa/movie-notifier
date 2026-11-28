@@ -113,13 +113,21 @@
       "movie": "You Can See Everything",
       "url": "https://in.bookmyshow.com/movies/delhi/you-can-see-everything/ET00526232",
       "date": "20261201",
-      "status": "watching"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-28T16:00:45+05:30"
     },
     "c65cd07235447226": {
       "movie": "You Can See Everything",
       "url": "https://in.bookmyshow.com/movies/delhi/you-can-see-everything/ET00526232",
       "date": "20261202",
-      "status": "watching"
+      "status": "open",
+      "notified_venues": [
+        "Cinepolis: Pacific NSP2, Delhi"
+      ],
+      "notified_at": "2026-11-28T16:00:46+05:30"
     },
     "c5bd0dbad6eac388": {
       "movie": "Dune: Part Three",
@@ -226,6 +234,6 @@
       "status": "watching"
     }
   },
-  "last_commit_at": "2026-11-28T14:01:38+05:30",
+  "last_commit_at": "2026-11-28T16:01:21+05:30",
   "last_heartbeat_at": "2026-11-27T09:01:33+05:30"
 }
